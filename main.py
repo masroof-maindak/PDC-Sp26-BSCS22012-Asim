@@ -1,17 +1,18 @@
-from fastapi import FastAPI, Request, HTTPException
+import time
+from datetime import datetime
+from enum import Enum
+
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-import httpx
-import time
-from enum import Enum
-from datetime import datetime, timedelta
 
 # Circuit Breaker Configuration
 STUDENT_ID = "BSCS22012"
 
+
 class CircuitBreakerState(Enum):
     CLOSED = "closed"  # Normal operation
-    OPEN = "open"      # Stop making requests
+    OPEN = "open"  # Stop making requests
     HALF_OPEN = "half_open"  # Testing if service is back
 
 
@@ -46,18 +47,21 @@ class CircuitBreaker:
         """Check if we should attempt to make a request"""
         if self.state == CircuitBreakerState.CLOSED:
             return True
-        
+
         if self.state == CircuitBreakerState.OPEN:
             # Check if recovery timeout has passed
-            if self.last_failure_time and \
-               (datetime.now() - self.last_failure_time).total_seconds() > self.recovery_timeout:
+            if (
+                self.last_failure_time
+                and (datetime.now() - self.last_failure_time).total_seconds()
+                > self.recovery_timeout
+            ):
                 self.state = CircuitBreakerState.HALF_OPEN
                 return True
             return False
-        
+
         if self.state == CircuitBreakerState.HALF_OPEN:
             return True
-        
+
         return False
 
     def get_status(self):
@@ -65,7 +69,9 @@ class CircuitBreaker:
         return {
             "state": self.state.value,
             "failure_count": self.failure_count,
-            "last_failure_time": self.last_failure_time.isoformat() if self.last_failure_time else None
+            "last_failure_time": self.last_failure_time.isoformat()
+            if self.last_failure_time
+            else None,
         }
 
 
@@ -105,7 +111,7 @@ class MockLLMService:
             # Simulate timeout by sleeping
             time.sleep(self.delay)
             raise TimeoutError(f"LLM API timed out after {self.delay} seconds")
-        
+
         # Simulate successful response with slight delay
         time.sleep(0.1)
         return f"LLM Response to '{prompt}': This is a generated response from the AI assistant."
@@ -117,21 +123,18 @@ mock_llm = MockLLMService()
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "circuit_breaker": circuit_breaker.get_status()
-    }
+    return {"status": "healthy", "circuit_breaker": circuit_breaker.get_status()}
 
 
 @app.post("/generate-text")
 async def generate_text(prompt: str):
     """
     Generate text using the LLM API with Circuit Breaker protection.
-    
+
     If the circuit is OPEN (LLM is failing), immediately return a fallback response
     without attempting to call the failing service.
     """
-    
+
     # Check if circuit breaker allows request
     if not circuit_breaker.can_attempt_request():
         return JSONResponse(
@@ -140,25 +143,25 @@ async def generate_text(prompt: str):
                 "status": "unavailable",
                 "message": "The AI assistant is currently unavailable. Please try again later.",
                 "circuit_breaker_state": circuit_breaker.state.value,
-                "reason": "Circuit breaker is OPEN - LLM service is not responding"
-            }
+                "reason": "Circuit breaker is OPEN - LLM service is not responding",
+            },
         )
-    
+
     try:
         # Attempt to call the LLM
         response = await mock_llm.generate_text(prompt)
         circuit_breaker.record_success()
-        
+
         return {
             "status": "success",
             "prompt": prompt,
             "response": response,
-            "circuit_breaker_state": circuit_breaker.state.value
+            "circuit_breaker_state": circuit_breaker.state.value,
         }
-    
+
     except TimeoutError as e:
         circuit_breaker.record_failure()
-        
+
         # If circuit is now open, return fallback immediately
         if circuit_breaker.state == CircuitBreakerState.OPEN:
             return JSONResponse(
@@ -167,10 +170,10 @@ async def generate_text(prompt: str):
                     "status": "unavailable",
                     "message": "The AI assistant is currently busy. Please try again in a few minutes.",
                     "circuit_breaker_state": circuit_breaker.state.value,
-                    "reason": "Circuit breaker is OPEN - too many failures detected"
-                }
+                    "reason": "Circuit breaker is OPEN - too many failures detected",
+                },
             )
-        
+
         # Still CLOSED or HALF_OPEN, return error but keep trying
         return JSONResponse(
             status_code=503,
@@ -178,10 +181,10 @@ async def generate_text(prompt: str):
                 "status": "error",
                 "message": str(e),
                 "circuit_breaker_state": circuit_breaker.state.value,
-                "failure_count": circuit_breaker.failure_count
-            }
+                "failure_count": circuit_breaker.failure_count,
+            },
         )
-    
+
     except Exception as e:
         circuit_breaker.record_failure()
         return JSONResponse(
@@ -189,8 +192,8 @@ async def generate_text(prompt: str):
             content={
                 "status": "error",
                 "message": f"Unexpected error: {str(e)}",
-                "circuit_breaker_state": circuit_breaker.state.value
-            }
+                "circuit_breaker_state": circuit_breaker.state.value,
+            },
         )
 
 
@@ -204,14 +207,14 @@ async def get_circuit_breaker_status():
 async def fail_llm(duration: int = 60):
     """
     Test endpoint to simulate LLM failure.
-    
+
     This is ONLY for testing purposes.
     """
     mock_llm.set_failing(True, duration)
     return {
         "message": "LLM service is now failing",
         "will_timeout_after": duration,
-        "circuit_breaker_state": circuit_breaker.state.value
+        "circuit_breaker_state": circuit_breaker.state.value,
     }
 
 
@@ -219,14 +222,14 @@ async def fail_llm(duration: int = 60):
 async def recover_llm():
     """
     Test endpoint to recover the LLM service.
-    
+
     This is ONLY for testing purposes.
     """
     mock_llm.set_failing(False)
     circuit_breaker.record_success()
     return {
         "message": "LLM service is recovered",
-        "circuit_breaker_state": circuit_breaker.state.value
+        "circuit_breaker_state": circuit_breaker.state.value,
     }
 
 
@@ -234,17 +237,18 @@ async def recover_llm():
 async def reset_circuit_breaker():
     """
     Test endpoint to reset the circuit breaker.
-    
+
     This is ONLY for testing purposes.
     """
     global circuit_breaker
     circuit_breaker = CircuitBreaker(failure_threshold=3, recovery_timeout=5)
     return {
         "message": "Circuit breaker reset",
-        "circuit_breaker_state": circuit_breaker.get_status()
+        "circuit_breaker_state": circuit_breaker.get_status(),
     }
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

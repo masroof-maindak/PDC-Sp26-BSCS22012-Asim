@@ -1,5 +1,15 @@
 # BSCS22012 | Circuit Breaker Pattern Implementation
 
+## Setup
+
+```bash
+git clone https://github.com/masroof-maindak/PDC-Sp26-BSCS22012-Asim.git pdc-asg02
+cd pdc-asg02
+```
+
+Additionally, you will also need `uv` for project management. Install it via
+your system's package manager.
+
 ## Usage
 
 ### Server
