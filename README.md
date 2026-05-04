@@ -15,13 +15,15 @@ your system's package manager.
 ### Server
 
 ```bash
-uv run uvicorn main:app --reload
+uv run uvicorn src.main:app --reload
+# Alternatively: `make`
 ```
 
 ### Tests
 
 ```bash
-uv run test_circuit_breaker.py
+uv run src/test_circuit_breaker.py
+# Alternatively: `make test`
 ```
 
 Covers:
