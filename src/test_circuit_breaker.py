@@ -31,17 +31,17 @@ def print_section(title):
 
 def print_success(message):
     """Print success message"""
-    print(f"{Fore.GREEN}✓ {message}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}[OK] {message}{Style.RESET_ALL}")
 
 
 def print_error(message):
     """Print error message"""
-    print(f"{Fore.RED}✗ {message}{Style.RESET_ALL}")
+    print(f"{Fore.RED}[FAIL] {message}{Style.RESET_ALL}")
 
 
 def print_info(message):
     """Print info message"""
-    print(f"{Fore.YELLOW}ℹ {message}{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}[INFO] {message}{Style.RESET_ALL}")
 
 
 def verify_student_id_header(response):
@@ -312,11 +312,11 @@ def main():
 
     if passed == total:
         print(
-            f"{Fore.GREEN}✓ All tests passed! Circuit Breaker is working correctly.{Style.RESET_ALL}\n"
+            f"{Fore.GREEN}[OK] All tests passed! Circuit Breaker is working correctly.{Style.RESET_ALL}\n"
         )
     else:
         print(
-            f"{Fore.RED}✗ Some tests failed. Please check the implementation.{Style.RESET_ALL}\n"
+            f"{Fore.RED}[FAIL] Some tests failed. Please check the implementation.{Style.RESET_ALL}\n"
         )
 
 
